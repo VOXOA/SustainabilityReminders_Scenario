@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Checkout</title>
+  <style>
+    :root{
+      --bg:#f6f7f9;
+      --card:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --shadow:0 10px 25px rgba(0,0,0,.08);
+      --radius:14px;
+
+      --primary:#111827;
+      --primaryText:#ffffff;
+
+      --highlight:rgba(16,185,129,.14);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB",
+                   "Microsoft YaHei", "Noto Sans CJK SC", "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .wrap{ max-width: 980px; margin: 22px auto; padding: 0 16px 56px; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .topbar h1{ font-size:20px; margin:0; letter-spacing:.2px; }
+
+    .grid{ display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; }
+    @media (max-width: 900px){ .grid{ grid-template-columns:1fr; } }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .hd{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .title{ font-weight:800; font-size:14.5px; margin:0; }
+    .sub{ font-size:12px; color:var(--muted); margin-top:4px; line-height:1.35; }
+    .bd{ padding:14px 16px; }
+    .divider{ height:1px; background:var(--line); margin:12px 0; }
+
+    /* Rows */
+    .rows{ display:flex; flex-direction:column; gap:10px; }
+    .row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; font-size:13.5px; }
+    .k{ color:var(--muted); }
+    .v{ font-weight:700; text-align:right; }
+
+    /* Item list */
+    .items{ display:flex; flex-direction:column; gap:10px; }
+    .item{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .item .name{ font-weight:800; font-size:13.5px; line-height:1.25; }
+    .item .meta{ margin-top:3px; color:var(--muted); font-size:12px; line-height:1.35; }
+    .item .price{ font-weight:800; font-size:13.5px; white-space:nowrap; }
+
+    /* Preferences (collapsible) */
+    details.pref{
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      overflow:hidden;
+    }
+    details.pref[open]{ box-shadow: 0 10px 20px rgba(0,0,0,.06); }
+    summary.pref-sum{
+      list-style:none;
+      padding:12px 12px;
+      cursor:pointer;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    summary.pref-sum::-webkit-details-marker{ display:none; }
+    .pref-left{ min-width:0; }
+    .pref-title{ font-weight:900; font-size:13.5px; margin:0; }
+    .pref-desc{ margin-top:4px; color:var(--muted); font-size:12.5px; line-height:1.4; }
+    .chev{
+      width:28px; height:28px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      display:flex; align-items:center; justify-content:center;
+      font-weight:900; color:#374151; flex:0 0 auto;
+      background:#fff;
+      transition: transform .15s ease;
+    }
+    details[open] .chev{ transform: rotate(180deg); }
+    .pref-body{ padding: 10px 12px 12px; border-top:1px solid var(--line); }
+
+    /* Options inside preferences */
+    .options{ display:flex; flex-direction:column; gap:10px; }
+    .opt{
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      background:#fff;
+      transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    .opt:hover{ border-color:#d1d5db; box-shadow:0 8px 18px rgba(0,0,0,.06); }
+    .opt-left{ display:flex; gap:10px; align-items:flex-start; flex:1; min-width:0; }
+    .opt-left input{ margin-top:3px; width:18px; height:18px; accent-color:#111827; flex:0 0 auto; }
+    .opt-main{ min-width:0; }
+    .opt-name{ font-weight:900; font-size:13.5px; line-height:1.2; margin:0; }
+    .opt-meta{ margin-top:6px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; color:var(--muted); font-size:12.5px; }
+    .tag{ border:1px solid var(--line); border-radius:999px; padding:3px 8px; background:#fafafa; }
+    .cost{ font-weight:900; color:#111827; background:#f3f4f6; border-color:#e5e7eb; }
+
+    /* Info tooltip */
+    .info{ position:relative; flex:0 0 auto; }
+    .info button{
+      width:26px; height:26px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      font-weight:900;
+      color:#374151;
+      line-height:1;
+    }
+    .tip{
+      position:absolute;
+      top: 32px;
+      right:0;
+      width: 300px;
+      background:#111827;
+      color:#fff;
+      border-radius:12px;
+      padding:10px 10px;
+      font-size:12.5px;
+      line-height:1.45;
+      box-shadow: 0 16px 40px rgba(0,0,0,.22);
+      display:none;
+      z-index:5;
+      text-align:left;
+    }
+    .tip::before{
+      content:"";
+      position:absolute;
+      top:-6px; right:10px;
+      width:12px; height:12px;
+      background:#111827;
+      transform: rotate(45deg);
+    }
+    .info.open .tip{ display:block; }
+
+    /* Highlighting preferences block */
+    .highlight{
+      outline: 3px solid var(--highlight);
+      box-shadow: 0 0 0 6px rgba(16,185,129,.08);
+      border-radius: 12px;
+      transition: outline-color .2s ease, box-shadow .2s ease;
+    }
+
+    /* Bottom CTA */
+    .cta{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      padding: 14px 16px;
+      border-top:1px solid var(--line);
+      background:#fff;
+    }
+    .cta-left{ color:var(--muted); font-size:12.5px; line-height:1.4; }
+    .cta-right{ display:flex; gap:10px; align-items:center; }
+    .btn{
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:13px;
+    }
+    .btn:hover{ border-color:#cbd5e1; }
+    .btn-primary{
+      background:var(--primary);
+      color:var(--primaryText);
+      border-color:var(--primary);
+    }
+    .btn-primary:hover{ filter:brightness(.96); }
+    .btn-ghost{ background:#fff; color:var(--muted); }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(17,24,39,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      z-index: 50;
+    }
+    .modal{
+      width: min(560px, 100%);
+      background:#fff;
+      border-radius: 18px;
+      border:1px solid var(--line);
+      box-shadow: 0 28px 70px rgba(0,0,0,.25);
+      overflow:hidden;
+    }
+    .modal-hd{
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .modal-title{ margin:0; font-size:14.5px; font-weight:900; }
+    .modal-close{
+      width:28px; height:28px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      font-weight:900;
+      color:#374151;
+      line-height:1;
+    }
+    .modal-bd{
+      padding:14px 16px;
+      color:#374151;
+      font-size:13.5px;
+      line-height:1.55;
+    }
+    .modal-bd p{ margin:0 0 10px; }
+    .modal-ft{
+      padding:14px 16px;
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:flex-end;
+      gap:10px;
+      background:#fff;
+    }
+
+    /* Confirmation view */
+    .success{ padding: 22px 16px; text-align:center; }
+    .check{
+      width:58px;height:58px;
+      border-radius:999px;
+      margin: 0 auto 10px;
+      background: rgba(16,185,129,.12);
+      border:1px solid rgba(16,185,129,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:28px;
+      color:#10b981;
+      font-weight:900;
+    }
+    .success h2{ margin: 6px 0 6px; font-size:18px; font-weight:900; }
+    .success p{ margin: 0 0 12px; color:var(--muted); font-size:13px; line-height:1.5; }
+    .small{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+    .hidden{ display:none !important; }
+
+    /* Language toggling */
+    [data-lang]{ display:none; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h1>
+        <span data-lang="zh">订单结算</span>
+        <span data-lang="en">Checkout</span>
+      </h1>
+      <div style="height:1px;width:1px;"></div>
+    </div>
+
+    <div class="grid" id="checkoutView">
+      <!-- Left: main checkout content -->
+      <div class="card" id="mainCard">
+        <div class="hd">
+          <div>
+            <div class="title">
+              <span data-lang="zh">结算</span>
+              <span data-lang="en">Checkout</span>
+            </div>
+            <div class="sub">
+              <span data-lang="zh">确认订单信息后完成支付。</span>
+              <span data-lang="en">Review your order details before placing it.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bd">
+          <!-- Delivery block -->
+          <div class="rows">
+            <div class="row">
+              <div class="k">
+                <span data-lang="zh">配送地址</span>
+                <span data-lang="en">Delivery address</span>
+              </div>
+              <div class="v">
+                <span data-lang="zh">已保存地址（柏林）</span>
+                <span data-lang="en">Saved address (Berlin)</span>
+              </div>
+            </div>
+            <div class="row">
+              <div class="k">
+                <span data-lang="zh">预计送达</span>
+                <span data-lang="en">Estimated delivery</span>
+              </div>
+              <div class="v" id="etaText">—</div>
+            </div>
+            <div class="row">
+              <div class="k">
+                <span data-lang="zh">支付方式</span>
+                <span data-lang="en">Payment method</span>
+              </div>
+              <div class="v">Visa •••• 1234</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Items -->
+          <div class="title" style="font-size:13.5px;">
+            <span data-lang="zh">商品清单</span>
+            <span data-lang="en">Items</span>
+          </div>
+          <div style="height:8px;"></div>
+
+          <!-- Keep item content as you had (CN + EN versions in-place) -->
+          <div class="items" aria-label="Items list">
+            <div class="item">
+              <div>
+                <div class="name">
+                  <span data-lang="zh">招牌牛肉饭（大份）</span>
+                  <span data-lang="en">Signature beef bowl (Large)</span>
+                </div>
+                <div class="meta">
+                  <span data-lang="zh">备注：微辣｜去香菜</span>
+                  <span data-lang="en">Note: Mild spicy · No cilantro</span>
+                </div>
+              </div>
+              <div class="price">€9.90</div>
+            </div>
+            <div class="item">
+              <div>
+                <div class="name">
+                  <span data-lang="zh">炸鸡块（6块）</span>
+                  <span data-lang="en">Fried chicken bites (6 pcs)</span>
+                </div>
+                <div class="meta">
+                  <span data-lang="zh">酱料：番茄酱</span>
+                  <span data-lang="en">Sauce: Ketchup</span>
+                </div>
+              </div>
+              <div class="price">€4.20</div>
+            </div>
+            <div class="item">
+              <div>
+                <div class="name">
+                  <span data-lang="zh">冰红茶（500ml）</span>
+                  <span data-lang="en">Iced black tea (500ml)</span>
+                </div>
+                <div class="meta">
+                  <span data-lang="zh">少冰</span>
+                  <span data-lang="en">Less ice</span>
+                </div>
+              </div>
+              <div class="price">€2.60</div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Preferences (collapsible A) -->
+          <details class="pref" id="prefDetails">
+            <summary class="pref-sum">
+              <div class="pref-left">
+                <p class="pref-title">
+                  <span data-lang="zh">订单偏好（可选）</span>
+                  <span data-lang="en">Order preferences (optional)</span>
+                </p>
+                <div class="pref-desc">
+                  <span data-lang="zh">你可以设置配送/包装/餐具选项（可能影响时间、费用或便利性）。</span>
+                  <span data-lang="en">You can adjust delivery/packaging/cutlery options (may affect time, fees, or convenience).</span>
+                </div>
+              </div>
+              <div class="chev">⌄</div>
+            </summary>
+
+            <div class="pref-body" id="prefBody">
+              <div class="options" aria-label="Order preference options">
+                <!-- Option 1 -->
+                <div class="opt">
+                  <div class="opt-left">
+                    <input id="opt_delivery" type="checkbox" />
+                    <div class="opt-main">
+                      <p class="opt-name">
+                        <span data-lang="zh">低排放配送</span>
+                        <span data-lang="en">Low-emission delivery</span>
+                      </p>
+                      <div class="opt-meta">
+                        <span class="tag cost">
+                          <span data-lang="zh">预计 +10 分钟</span>
+                          <span data-lang="en">+10 min</span>
+                        </span>
+                        <span class="tag">
+                          <span data-lang="zh">配送</span>
+                          <span data-lang="en">Delivery</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info">
+                    <button type="button" aria-label="Info">i</button>
+                    <div class="tip" role="tooltip">
+                      <span data-lang="zh">使用更低排放的配送方式或更高效的路线安排，可能略微增加配送时间。</span>
+                      <span data-lang="en">Uses lower-emission delivery methods or more efficient routing; may slightly increase delivery time.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Option 2 -->
+                <div class="opt">
+                  <div class="opt-left">
+                    <input id="opt_packaging" type="checkbox" />
+                    <div class="opt-main">
+                      <p class="opt-name">
+                        <span data-lang="zh">环保包装</span>
+                        <span data-lang="en">Eco packaging</span>
+                      </p>
+                      <div class="opt-meta">
+                        <span class="tag cost">+€0.30</span>
+                        <span class="tag">
+                          <span data-lang="zh">包装</span>
+                          <span data-lang="en">Packaging</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info">
+                    <button type="button" aria-label="Info">i</button>
+                    <div class="tip" role="tooltip">
+                      <span data-lang="zh">使用更少或更可回收/再生材料的包装，可能收取小额包装费用。</span>
+                      <span data-lang="en">Uses reduced or more recyclable/recycled packaging; a small packaging fee may apply.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Option 3 -->
+                <div class="opt">
+                  <div class="opt-left">
+                    <input id="opt_cutlery" type="checkbox" />
+                    <div class="opt-main">
+                      <p class="opt-name">
+                        <span data-lang="zh">不需要一次性餐具</span>
+                        <span data-lang="en">No single-use cutlery</span>
+                      </p>
+                      <div class="opt-meta">
+                        <span class="tag cost">
+                          <span data-lang="zh">需自备餐具</span>
+                          <span data-lang="en">Bring your own</span>
+                        </span>
+                        <span class="tag">
+                          <span data-lang="zh">餐具</span>
+                          <span data-lang="en">Cutlery</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info">
+                    <button type="button" aria-label="Info">i</button>
+                    <div class="tip" role="tooltip">
+                      <span data-lang="zh">订单将不包含一次性刀叉/筷勺等用品，需要自备餐具。</span>
+                      <span data-lang="en">Your order will not include disposable cutlery (e.g., fork/knife/chopsticks). You may need your own.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="small">
+                  <span data-lang="zh">提示：点击每一项右侧 “i” 可查看简要说明。</span>
+                  <span data-lang="en">Tip: click “i” to see a short explanation.</span>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <div class="divider"></div>
+
+          <!-- Price breakdown -->
+          <div class="title" style="font-size:13.5px;">
+            <span data-lang="zh">费用明细</span>
+            <span data-lang="en">Price breakdown</span>
+          </div>
+          <div style="height:8px;"></div>
+
+          <div class="rows" aria-label="Price breakdown">
+            <div class="row">
+              <div class="k"><span data-lang="zh">商品小计</span><span data-lang="en">Items subtotal</span></div>
+              <div class="v">€16.70</div>
+            </div>
+            <div class="row">
+              <div class="k"><span data-lang="zh">配送费</span><span data-lang="en">Delivery fee</span></div>
+              <div class="v">€1.90</div>
+            </div>
+            <div class="row">
+              <div class="k"><span data-lang="zh">服务费</span><span data-lang="en">Service fee</span></div>
+              <div class="v">€0.60</div>
+            </div>
+            <div class="row" id="packFeeRow">
+              <div class="k"><span data-lang="zh">包装费</span><span data-lang="en">Packaging fee</span></div>
+              <div class="v" id="packFeeVal">€0.00</div>
+            </div>
+            <div class="row">
+              <div class="k"><span data-lang="zh">优惠</span><span data-lang="en">Discount</span></div>
+              <div class="v">-€0.30</div>
+            </div>
+            <div class="divider"></div>
+            <div class="row">
+              <div class="k" style="color:#111827;font-weight:900;"><span data-lang="zh">合计</span><span data-lang="en">Total</span></div>
+              <div class="v" id="total">€18.90</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cta">
+          <div class="cta-left">
+            <span data-lang="zh">点击“去支付”后将进入模拟支付确认。</span>
+            <span data-lang="en">Click “Place order” to proceed to a simulated confirmation step.</span>
+          </div>
+          <div class="cta-right">
+            <button class="btn btn-ghost" type="button" id="btnBack">
+              <span data-lang="zh">返回</span>
+              <span data-lang="en">Back</span>
+            </button>
+            <button class="btn btn-primary" type="button" id="btnPay">
+              <span data-lang="zh">去支付</span>
+              <span data-lang="en">Place order</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: compact summary -->
+      <div class="card">
+        <div class="hd">
+          <div>
+            <div class="title">
+              <span data-lang="zh">订单概览</span>
+              <span data-lang="en">Order summary</span>
+            </div>
+            <div class="sub">
+              <span data-lang="zh">用于快速确认关键信息。</span>
+              <span data-lang="en">A quick overview of key details.</span>
+            </div>
+          </div>
+        </div>
+        <div class="bd">
+          <div class="rows">
+            <div class="row">
+              <div class="k"><span data-lang="zh">商家</span><span data-lang="en">Restaurant</span></div>
+              <div class="v"><span data-lang="zh">XX餐厅</span><span data-lang="en">XX Restaurant</span></div>
+            </div>
+            <div class="row">
+              <div class="k"><span data-lang="zh">预计送达</span><span data-lang="en">Estimated delivery</span></div>
+              <div class="v" id="etaSide">—</div>
+            </div>
+            <div class="row">
+              <div class="k"><span data-lang="zh">支付方式</span><span data-lang="en">Payment method</span></div>
+              <div class="v">Visa •••• 1234</div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="rows">
+            <div class="row">
+              <div class="k"><span data-lang="zh">合计</span><span data-lang="en">Total</span></div>
+              <div class="v" id="totalSide">€18.90</div>
+            </div>
+          </div>
+          <div class="small" style="margin-top:12px;">
+            <span data-lang="zh">你可以在“订单偏好（可选）”中调整配送/包装/餐具设置。</span>
+            <span data-lang="en">You can adjust settings in “Order preferences (optional)”.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation -->
+    <div class="card hidden" id="confirmView">
+      <div class="success">
+        <div class="check">✓</div>
+        <h2>
+          <span data-lang="zh">支付已完成</span>
+          <span data-lang="en">Payment completed</span>
+        </h2>
+        <p>
+          <span data-lang="zh">你的订单已提交。</span>
+          <span data-lang="en">Your order has been placed.</span>
+        </p>
+
+        <div class="rows" style="max-width:420px;margin:14px auto 0;text-align:left;">
+          <div class="row">
+            <div class="k"><span data-lang="zh">预计送达</span><span data-lang="en">Estimated delivery</span></div>
+            <div class="v" id="eta">—</div>
+          </div>
+          <div class="row">
+            <div class="k"><span data-lang="zh">订单合计</span><span data-lang="en">Total</span></div>
+            <div class="v" id="finalTotal">€18.90</div>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <button class="btn btn-primary" type="button" id="btnReturn">
+            <span data-lang="zh">继续（返回问卷）</span>
+            <span data-lang="en">Continue (return to survey)</span>
+          </button>
+        </div>
+
+        <div class="small">
+          <span data-lang="zh">点击后将把你在本页面的选择结果返回到问卷中。</span>
+          <span data-lang="en">Clicking continue will return your selections to the survey.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal (treatment only) -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-hd">
+        <div>
+          <p class="modal-title" id="modalTitle">
+            <span data-lang="zh">可持续选项提示</span>
+            <span data-lang="en">Sustainability options available</span>
+          </p>
+          <div class="sub" style="margin-top:4px;">
+            <span data-lang="zh">支付前你可以查看订单偏好选项。</span>
+            <span data-lang="en">Before paying, you can review order preference options.</span>
+          </div>
+        </div>
+        <button class="modal-close" type="button" id="modalClose" aria-label="Close">×</button>
+      </div>
+      <div class="modal-bd">
+        <p>
+          <span data-lang="zh">在支付前，你可以选择低排放配送/环保包装，或不需要一次性餐具。</span>
+          <span data-lang="en">Before paying, you can choose low-emission delivery, eco packaging, or opt out of single-use cutlery.</span>
+        </p>
+        <p style="margin-bottom:0;">
+          <span data-lang="zh">这些选项可能带来少量权衡（如配送时间、费用或便利性）。</span>
+          <span data-lang="en">These options may involve small trade-offs (e.g., time, fee, or convenience).</span>
+        </p>
+      </div>
+      <div class="modal-ft">
+        <button class="btn" type="button" id="modalReview">
+          <span data-lang="zh">查看选项</span>
+          <span data-lang="en">Review options</span>
+        </button>
+        <button class="btn btn-primary" type="button" id="modalContinue">
+          <span data-lang="zh">继续支付</span>
+          <span data-lang="en">Continue to payment</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * Unified single-page version for:
+     * - Language: lang=zh | en
+     * - Condition: condition=control | treatment
+     * - return_url: URL-encoded link back to Qualtrics
+     *
+     * Returned query params appended to return_url:
+     * - delivery_selected=0/1
+     * - packaging_selected=0/1
+     * - cutlery_selected=0/1
+     * - dv1_count=0..3
+     * - dv2_any=0/1
+     * - order_total=xx.xx
+     * - eta_min=xx
+     * - eta_max=xx
+     */
+    const qs = new URLSearchParams(window.location.search);
+    const lang = (qs.get("lang") || "en").toLowerCase();               // "zh" | "en"
+    const condition = (qs.get("condition") || "control").toLowerCase(); // "control" | "treatment"
+    const returnUrlRaw = qs.get("return_url"); // optional
+
+    // Apply language visibility
+    function applyLanguage(currentLang){
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+      // Toggle all data-lang nodes
+      document.querySelectorAll("[data-lang]").forEach(el => {
+        el.style.display = (el.getAttribute("data-lang") === currentLang) ? "" : "none";
+      });
+      // Update title (browser tab)
+      document.title = currentLang === "zh" ? "订单结算" : "Checkout";
+    }
+    applyLanguage(lang);
+
+    const elDelivery = document.getElementById("opt_delivery");
+    const elPackaging = document.getElementById("opt_packaging");
+    const elCutlery = document.getElementById("opt_cutlery");
+
+    const elTotal = document.getElementById("total");
+    const elTotalSide = document.getElementById("totalSide");
+    const elFinalTotal = document.getElementById("finalTotal");
+    const packFeeVal = document.getElementById("packFeeVal");
+
+    // ETA elements
+    const etaText = document.getElementById("etaText");
+    const etaSide = document.getElementById("etaSide");
+    const etaConfirm = document.getElementById("eta");
+
+    const baseTotal = 18.90;      // includes discount already
+    const packagingFee = 0.30;
+
+    // ETA baseline + extra minutes for low-emission delivery
+    const baseEtaMin = 30;
+    const baseEtaMax = 40;
+    const deliveryExtraMin = 10;
+
+    function formatEUR(n){ return "€" + n.toFixed(2); }
+    function formatEta(min, max){
+      return lang === "zh" ? `约 ${min}–${max} 分钟` : `~ ${min}–${max} min`;
+    }
+    function formatEtaCompact(min, max){
+      return lang === "zh" ? `${min}–${max} 分钟` : `${min}–${max} min`;
+    }
+
+    function compute(){
+      const delivery = elDelivery.checked ? 1 : 0;
+      const packaging = elPackaging.checked ? 1 : 0;
+      const cutlery = elCutlery.checked ? 1 : 0;
+
+      const dv1 = delivery + packaging + cutlery;
+      const dv2 = dv1 >= 1 ? 1 : 0;
+
+      const total = baseTotal + (packaging ? packagingFee : 0);
+
+      const etaMin = baseEtaMin + (delivery ? deliveryExtraMin : 0);
+      const etaMax = baseEtaMax + (delivery ? deliveryExtraMin : 0);
+
+      return {delivery, packaging, cutlery, dv1, dv2, total, etaMin, etaMax};
+    }
+
+    function updateTotals(){
+      const {packaging, total, etaMin, etaMax} = compute();
+
+      packFeeVal.textContent = packaging ? formatEUR(packagingFee) : "€0.00";
+      elTotal.textContent = formatEUR(total);
+      elTotalSide.textContent = formatEUR(total);
+      elFinalTotal.textContent = formatEUR(total);
+
+      if (etaText) etaText.textContent = formatEta(etaMin, etaMax);
+      if (etaSide) etaSide.textContent = formatEtaCompact(etaMin, etaMax);
+      if (etaConfirm) etaConfirm.textContent = formatEta(etaMin, etaMax);
+    }
+
+    [elDelivery, elPackaging, elCutlery].forEach(el => el.addEventListener("change", updateTotals));
+    updateTotals();
+
+    // i tooltips
+    const infoBlocks = Array.from(document.querySelectorAll(".info"));
+    infoBlocks.forEach(block => {
+      const btn = block.querySelector("button");
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        infoBlocks.forEach(b => { if (b !== block) b.classList.remove("open"); });
+        block.classList.toggle("open");
+      });
+    });
+    document.addEventListener("click", () => infoBlocks.forEach(b => b.classList.remove("open")));
+
+    // Views
+    const checkoutView = document.getElementById("checkoutView");
+    const confirmView = document.getElementById("confirmView");
+
+    function showConfirm(){
+      checkoutView.classList.add("hidden");
+      confirmView.classList.remove("hidden");
+      window.scrollTo({top:0, behavior:"smooth"});
+      updateTotals();
+    }
+
+    // Modal logic (treatment only)
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalClose = document.getElementById("modalClose");
+    const modalReview = document.getElementById("modalReview");
+    const modalContinue = document.getElementById("modalContinue");
+    const prefDetails = document.getElementById("prefDetails");
+    const prefBody = document.getElementById("prefBody");
+
+    let modalShownOnce = false;
+
+    function openModal(){
+      modalBackdrop.style.display = "flex";
+      modalBackdrop.setAttribute("aria-hidden", "false");
+      modalContinue.focus();
+    }
+    function closeModal(){
+      modalBackdrop.style.display = "none";
+      modalBackdrop.setAttribute("aria-hidden", "true");
+    }
+
+    function expandAndHighlightPreferences(){
+      prefDetails.open = true;
+      prefDetails.scrollIntoView({behavior:"smooth", block:"start"});
+      prefBody.classList.add("highlight");
+      setTimeout(() => prefBody.classList.remove("highlight"), 2500);
+    }
+
+    function continueToPayment(){
+      closeModal();
+      showConfirm();
+    }
+
+    modalContinue.addEventListener("click", continueToPayment);
+    modalClose.addEventListener("click", continueToPayment);
+    modalReview.addEventListener("click", () => {
+      closeModal();
+      expandAndHighlightPreferences();
+    });
+    modalBackdrop.addEventListener("click", (e) => {
+      if (e.target === modalBackdrop) continueToPayment();
+    });
+
+    // Pay button: treatment shows pop-up once; control goes straight to confirm
+    document.getElementById("btnPay").addEventListener("click", () => {
+      if (condition === "treatment" && !modalShownOnce){
+        modalShownOnce = true;
+        openModal();
+        return;
+      }
+      showConfirm();
+    });
+
+    // Back button
+    document.getElementById("btnBack").addEventListener("click", () => {
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+
+    // Return to survey
+    document.getElementById("btnReturn").addEventListener("click", () => {
+      const {delivery, packaging, cutlery, dv1, dv2, total, etaMin, etaMax} = compute();
+
+      if (!returnUrlRaw){
+        const msg = lang === "zh"
+          ? ("未检测到 return_url 参数，无法返回问卷。\n\n" +
+             "你当前选择：\n" +
+             "低排放配送=" + delivery + "\n" +
+             "环保包装=" + packaging + "\n" +
+             "不需要餐具=" + cutlery + "\n" +
+             "DV1=" + dv1 + ", DV2=" + dv2 + "\n" +
+             "预计送达=" + formatEta(etaMin, etaMax) + "\n" +
+             "合计=" + formatEUR(total))
+          : ("return_url parameter not found. Unable to return to the survey.\n\n" +
+             "Your selections:\n" +
+             "Low-emission delivery=" + delivery + "\n" +
+             "Eco packaging=" + packaging + "\n" +
+             "No single-use cutlery=" + cutlery + "\n" +
+             "DV1=" + dv1 + ", DV2=" + dv2 + "\n" +
+             "ETA=" + formatEta(etaMin, etaMax) + "\n" +
+             "Total=" + formatEUR(total));
+        alert(msg);
+        return;
+      }
+
+      const returnUrl = new URL(decodeURIComponent(returnUrlRaw));
+      returnUrl.searchParams.set("delivery_selected", String(delivery));
+      returnUrl.searchParams.set("packaging_selected", String(packaging));
+      returnUrl.searchParams.set("cutlery_selected", String(cutlery));
+      returnUrl.searchParams.set("dv1_count", String(dv1));
+      returnUrl.searchParams.set("dv2_any", String(dv2));
+      returnUrl.searchParams.set("order_total", String(total.toFixed(2)));
+      returnUrl.searchParams.set("eta_min", String(etaMin));
+      returnUrl.searchParams.set("eta_max", String(etaMax));
+      returnUrl.searchParams.set("scenario_done", "1");
+      returnUrl.searchParams.set("lang", lang);
+      returnUrl.searchParams.set("condition", condition); 
+
+
+      window.location.href = returnUrl.toString();
+    });
+  </script>
+</body>
+</html>
