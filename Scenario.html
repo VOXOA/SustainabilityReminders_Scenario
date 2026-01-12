@@ -874,49 +874,56 @@
     });
 
     // Return to survey
-    document.getElementById("btnReturn").addEventListener("click", () => {
-      const {delivery, packaging, cutlery, dv1, dv2, total, etaMin, etaMax} = compute();
+document.getElementById("btnReturn").addEventListener("click", () => {
+  const {delivery, packaging, cutlery, dv1, dv2, total, etaMin, etaMax} = compute();
 
-      if (!returnUrlRaw){
-        const msg = lang === "zh"
-          ? ("未检测到 return_url 参数，无法返回问卷。\n\n" +
-             "你当前选择：\n" +
-             "低排放配送=" + delivery + "\n" +
-             "环保包装=" + packaging + "\n" +
-             "不需要餐具=" + cutlery + "\n" +
-             "DV1=" + dv1 + ", DV2=" + dv2 + "\n" +
-             "预计送达=" + formatEta(etaMin, etaMax) + "\n" +
-             "合计=" + formatEUR(total))
-          : ("return_url parameter not found. Unable to return to the survey.\n\n" +
-             "Your selections:\n" +
-             "Low-emission delivery=" + delivery + "\n" +
-             "Eco packaging=" + packaging + "\n" +
-             "No single-use cutlery=" + cutlery + "\n" +
-             "DV1=" + dv1 + ", DV2=" + dv2 + "\n" +
-             "ETA=" + formatEta(etaMin, etaMax) + "\n" +
-             "Total=" + formatEUR(total));
-        alert(msg);
-        return;
-      }
+  // 构造要回传的数据
+  const payload = {
+    delivery_selected: delivery,
+    packaging_selected: packaging,
+    cutlery_selected: cutlery,
+    dv1_count: dv1,
+    dv2_any: dv2,
+    order_total: total.toFixed(2),
+    eta_min: etaMin,
+    eta_max: etaMax,
+    lang: lang,
+    condition: condition
+  };
 
-      const returnUrl = new URL(decodeURIComponent(returnUrlRaw));
-      returnUrl.searchParams.set("delivery_selected", String(delivery));
-      returnUrl.searchParams.set("packaging_selected", String(packaging));
-      returnUrl.searchParams.set("cutlery_selected", String(cutlery));
-      returnUrl.searchParams.set("dv1_count", String(dv1));
-      returnUrl.searchParams.set("dv2_any", String(dv2));
-      returnUrl.searchParams.set("order_total", String(total.toFixed(2)));
-      returnUrl.searchParams.set("eta_min", String(etaMin));
-      returnUrl.searchParams.set("eta_max", String(etaMax));
+  // ✅ 如果在 iframe 中：用 postMessage 回传给 Qualtrics
+  const embed = (new URLSearchParams(window.location.search).get("embed") === "1");
+  if (embed && window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: "scenario_done", payload }, "https://tummgmt.eu.qualtrics.com");
+    return;
+  }
 
-      // A-scheme marker + echoes
-      returnUrl.searchParams.set("scenario_done", "1");
-      returnUrl.searchParams.set("lang", lang);
-      returnUrl.searchParams.set("condition", condition);
+  // 否则：保留你原来的 return_url 跳转逻辑（方便独立测试）
+  if (!returnUrlRaw){
+    alert("return_url parameter not found. (Standalone test mode)");
+    return;
+  }
 
-      window.location.replace(returnUrl.toString());
-    });
+  let decoded = returnUrlRaw;
+  try { decoded = decodeURIComponent(returnUrlRaw); } catch(e) {}
+  const returnUrl = new URL(decoded);
+
+  returnUrl.searchParams.set("delivery_selected", String(delivery));
+  returnUrl.searchParams.set("packaging_selected", String(packaging));
+  returnUrl.searchParams.set("cutlery_selected", String(cutlery));
+  returnUrl.searchParams.set("dv1_count", String(dv1));
+  returnUrl.searchParams.set("dv2_any", String(dv2));
+  returnUrl.searchParams.set("order_total", String(total.toFixed(2)));
+  returnUrl.searchParams.set("eta_min", String(etaMin));
+  returnUrl.searchParams.set("eta_max", String(etaMax));
+  returnUrl.searchParams.set("scenario_done", "1");
+  returnUrl.searchParams.set("lang", lang);
+  returnUrl.searchParams.set("condition", condition);
+
+  window.location.replace(returnUrl.toString());
+});
   </script>
 </body>
 </html>
+
 
