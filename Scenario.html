@@ -1,9 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-ui-lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Checkout</title>
+
+  <!-- Optional: avoid favicon.ico 404 -->
+  <link rel="icon" href="data:,">
+
   <style>
     :root{
       --bg:#f6f7f9;
@@ -274,8 +278,9 @@
     .small{ font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
     .hidden{ display:none !important; }
 
-    /* Language toggling */
-    [data-lang]{ display:none; }
+    /* ✅ Robust language toggling via <html data-ui-lang="..."> */
+    html[data-ui-lang="en"] [data-lang="zh"] { display: none; }
+    html[data-ui-lang="zh"] [data-lang="en"] { display: none; }
   </style>
 </head>
 
@@ -343,7 +348,6 @@
           </div>
           <div style="height:8px;"></div>
 
-          <!-- Keep item content as you had (CN + EN versions in-place) -->
           <div class="items" aria-label="Items list">
             <div class="item">
               <div>
@@ -682,7 +686,7 @@
   <script>
     /**
      * Unified single-page version for:
-     * - Language: lang=zh | en
+     * - Language: lang=zh | en (robust normalization)
      * - Condition: condition=control | treatment
      * - return_url: URL-encoded link back to Qualtrics
      *
@@ -695,53 +699,37 @@
      * - order_total=xx.xx
      * - eta_min=xx
      * - eta_max=xx
+     * - scenario_done=1
+     * - lang (echo)
+     * - condition (echo)
      */
+    const qs = new URLSearchParams(window.location.search);
 
-const qs = new URLSearchParams(window.location.search);
+    // Robust lang normalization: anything containing "zh" => zh, else en
+    const langRaw = qs.get("lang");
+    let lang = (langRaw || "en").toLowerCase();
+    lang = lang.includes("zh") ? "zh" : "en";
 
-// 记录原始值，方便排查
-const langRaw = qs.get("lang");
+    // Robust condition normalization: anything containing "treat" => treatment, else control
+    const conditionRaw = qs.get("condition");
+    let condition = (conditionRaw || "control").toLowerCase();
+    condition = condition.includes("treat") ? "treatment" : "control";
 
-// lang 归一化为 zh/en
-let lang = (langRaw || "en").toLowerCase();
-lang = lang.includes("zh") ? "zh" : "en";
+    const returnUrlRaw = qs.get("return_url"); // optional
 
-// condition 规范化
-let condition = (qs.get("condition") || "control").toLowerCase();
-condition = condition.includes("treat") ? "treatment" : "control";
+    // Apply language via <html data-ui-lang="..."> + title
+    function applyLanguage(currentLang){
+      const useLang = (currentLang === "zh") ? "zh" : "en";
+      document.documentElement.lang = useLang === "zh" ? "zh-CN" : "en";
+      document.documentElement.setAttribute("data-ui-lang", useLang);
+      document.title = useLang === "zh" ? "订单结算" : "Checkout";
+      console.log("[LangDebug] langRaw=", langRaw, "=>", useLang);
+    }
 
-const returnUrlRaw = qs.get("return_url"); // optional
-
-function applyLanguage(currentLang){
-  const useLang = (currentLang === "zh") ? "zh" : "en";
-  document.documentElement.lang = useLang === "zh" ? "zh-CN" : "en";
-
-  const nodes = document.querySelectorAll("[data-lang]");
-  let shown = 0;
-
-  nodes.forEach(el => {
-    const match = el.getAttribute("data-lang") === useLang;
-    el.style.display = match ? "" : "none";
-    if (match) shown++;
-  });
-
-  document.title = useLang === "zh" ? "订单结算" : "Checkout";
-  console.log("[LangDebug] langRaw =", langRaw, "→ useLang =", useLang, "shown =", shown, "total =", nodes.length);
-
-  return shown;
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const shown = applyLanguage(lang);
-
-  // 兜底：如果一个都没显示，就临时全部显示，避免“只剩数字”
-  if (shown === 0) {
-    console.warn("[LangDebug] No nodes shown. Temporarily showing all [data-lang] nodes for debugging.");
-    document.querySelectorAll("[data-lang]").forEach(el => el.style.display = "");
-  }
-});
-
-
+    // Ensure applies after DOM is ready
+    document.addEventListener("DOMContentLoaded", () => {
+      applyLanguage(lang);
+    });
 
     const elDelivery = document.getElementById("opt_delivery");
     const elPackaging = document.getElementById("opt_packaging");
@@ -920,15 +908,14 @@ document.addEventListener("DOMContentLoaded", () => {
       returnUrl.searchParams.set("order_total", String(total.toFixed(2)));
       returnUrl.searchParams.set("eta_min", String(etaMin));
       returnUrl.searchParams.set("eta_max", String(etaMax));
+
+      // A-scheme marker + echoes
       returnUrl.searchParams.set("scenario_done", "1");
       returnUrl.searchParams.set("lang", lang);
-      returnUrl.searchParams.set("condition", condition); 
-
+      returnUrl.searchParams.set("condition", condition);
 
       window.location.href = returnUrl.toString();
     });
   </script>
 </body>
 </html>
-
-
