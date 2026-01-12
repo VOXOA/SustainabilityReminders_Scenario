@@ -696,32 +696,51 @@
      * - eta_min=xx
      * - eta_max=xx
      */
-   const qs = new URLSearchParams(window.location.search);
 
-//lang 强制归一化为 zh/en
-let lang = (qs.get("lang") || "en").toLowerCase();
+const qs = new URLSearchParams(window.location.search);
+
+// 记录原始值，方便排查
+const langRaw = qs.get("lang");
+
+// lang 归一化为 zh/en
+let lang = (langRaw || "en").toLowerCase();
 lang = lang.includes("zh") ? "zh" : "en";
 
-// condition 也顺手规范一下
+// condition 规范化
 let condition = (qs.get("condition") || "control").toLowerCase();
 condition = condition.includes("treat") ? "treatment" : "control";
 
 const returnUrlRaw = qs.get("return_url"); // optional
 
-// Apply language visibility
 function applyLanguage(currentLang){
-  document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
-  document.querySelectorAll("[data-lang]").forEach(el => {
-    el.style.display = (el.getAttribute("data-lang") === currentLang) ? "" : "none";
+  const useLang = (currentLang === "zh") ? "zh" : "en";
+  document.documentElement.lang = useLang === "zh" ? "zh-CN" : "en";
+
+  const nodes = document.querySelectorAll("[data-lang]");
+  let shown = 0;
+
+  nodes.forEach(el => {
+    const match = el.getAttribute("data-lang") === useLang;
+    el.style.display = match ? "" : "none";
+    if (match) shown++;
   });
-  document.title = currentLang === "zh" ? "订单结算" : "Checkout";
+
+  document.title = useLang === "zh" ? "订单结算" : "Checkout";
+  console.log("[LangDebug] langRaw =", langRaw, "→ useLang =", useLang, "shown =", shown, "total =", nodes.length);
+
+  return shown;
 }
 
-//等 DOM 准备好再执行
 document.addEventListener("DOMContentLoaded", () => {
-  applyLanguage(lang);
-  console.log("Applied language:", lang);
+  const shown = applyLanguage(lang);
+
+  // 兜底：如果一个都没显示，就临时全部显示，避免“只剩数字”
+  if (shown === 0) {
+    console.warn("[LangDebug] No nodes shown. Temporarily showing all [data-lang] nodes for debugging.");
+    document.querySelectorAll("[data-lang]").forEach(el => el.style.display = "");
+  }
 });
+
 
 
     const elDelivery = document.getElementById("opt_delivery");
@@ -911,4 +930,5 @@ document.addEventListener("DOMContentLoaded", () => {
   </script>
 </body>
 </html>
+
 
