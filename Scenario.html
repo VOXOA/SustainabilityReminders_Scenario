@@ -914,8 +914,9 @@
       returnUrl.searchParams.set("lang", lang);
       returnUrl.searchParams.set("condition", condition);
 
-      window.location.href = returnUrl.toString();
+      window.location.replace(returnUrl.toString());
     });
   </script>
 </body>
 </html>
+
